@@ -38,7 +38,5 @@ clean:
 	@echo Done cleaning.
 
 upload-to-pic: ${DISTDIR}/$(PROJECTNAME).${IMAGE_TYPE}.${OUTPUT_SUFFIX}
-	@scp -P42000 ${DISTDIR}/$(PROJECTNAME).${IMAGE_TYPE}.hex pi@$(IPPI):/tmp
-	@ssh -p42000 pi@$(IPPI) /opt/pickle/p14 program /tmp/$(PROJECTNAME).${IMAGE_TYPE}.hex
-	@ssh -p42000 pi@$(IPPI) /opt/pickle/p14 verify /tmp/$(PROJECTNAME).${IMAGE_TYPE}.hex
+	@./upload.sh
 	@echo Done uploading.
