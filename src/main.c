@@ -1,31 +1,29 @@
-#pragma config CONFIG1 = 0x3CF4
-#pragma config CONFIG2 = 0x0600
+#include <xc.h>
+#include <proc/pic16f887.h>
 
 #include "display/display.h"
 
+#pragma config CONFIG1 = 0x3CF4
+#pragma config CONFIG2 = 0x0600
+
 int main() {
-    __delay_us(1);
-
-    TRISA0 = 0;
-    TRISA1 = 0;
-    TRISA2 = 0;
-    TRISA3 = 0;
-
-    RA0 = 0;
-    RA1 = 0;
-    RA2 = 0;
-    RA3 = 0;
-
     TRISB0 = 0;
     RB0 = 1;
 
     displayinit(1);
 
-    home();
-    clear();
-    display(1);
-
     print("Hello, world!");
+    __delay_ms(1000);
+
+    char buff[] = "AAAAA";
+
+    moveCursor(1, 30);
+    print(buff);
+
+    for (int i = 0; i < sizeof(buff) - 17; i++) {
+        scrollDisplay();
+        __delay_ms(200);
+    }
 
     RB0 = 0;
 

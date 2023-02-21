@@ -102,14 +102,25 @@ void blink(uint8_t value) {
 }
 
 void scrollDisplay() {
-    __command(LCD_CDSHIFT | LCD_DISPLAYMOVE);
+    __command(LCD_LCDSHIFT | LCD_DISPLAYMOVE);
 }
 
+// This was on the arduino driver, but i might as well delete it.
 void customChar(uint8_t location, char charmap[]) {
     location &= 0x7;
     __command(LCD_SETCGRAMADDR | (location << 3));
     for (int i = 0; i < 8; i++)
         __write(charmap[i]);
+}
+
+// The other examples account for 4 row.
+// It might have something to do with the 40-char extension driver
+// mentioned at page 12 of the datasheet, but it works like this too.
+void moveCursor(uint8_t row, uint8_t col) {
+    row = row > (__lines - 1) ? 0 : row;
+    col = col > 40 ? 0 : col;
+
+    __command(LCD_SETDDRAMADDR | (0x40 * row) + col);
 }
 
 inline void __write(uint8_t val) {
