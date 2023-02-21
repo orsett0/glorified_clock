@@ -53,14 +53,18 @@ void displayinit(uint8_t fourbits)
 
     //__display_ctrl |= LCD_CURSORON;
 
-    display(1);
+    clear();
     __delay_ms(50);
     
-    clear();
+    display(1);
     __delay_ms(50);
 
     __command(LCD_ENTRYMODESET | LCD_ENTRYLEFT);
     __delay_ms(50);
+}
+
+void printc(char c) {
+    __write(c);
 }
 
 void print(char *buff) {

@@ -12,21 +12,27 @@ int main() {
 
     displayinit(1);
 
-    print("Hello, world!");
-    __delay_ms(1000);
+    cursor(1);
+    blink(1);
+    __delay_ms(2000);
 
-    char buff[] = "AAAAA";
-
-    moveCursor(1, 30);
-    print(buff);
-
-    for (int i = 0; i < sizeof(buff) - 17; i++) {
-        scrollDisplay();
-        __delay_ms(200);
+    blink(0);
+    char buff[] = "Hello world!";
+    for (int i = 0; i < sizeof(buff) - 1; i++) {
+        printc(buff[i]);
+       __delay_ms(80); 
     }
 
-    RB0 = 0;
+    blink(1);
+    __delay_ms(2000);
 
+    blink(0);
+    __delay_ms(500);
+    cursor(0);
+    __delay_ms(500);
+    display(0);
+
+    RB0 = 0;
     while (1) {
         RB0 = 1;
         __delay_ms(150);

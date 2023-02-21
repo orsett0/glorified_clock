@@ -34,21 +34,29 @@ uint8_t __lines = 2; // Assume i'll always need two lines.
 
 void displayinit(uint8_t);
 
-/*
- * Print content of buff to the display.
-*/
+/* Print content of buff to the display. */
 void print(char *buff);
+/* Print a single character to the display. */
+void printc(char c);
 
+/* Clear the display and set the cursor to (0, 0) */
 void clear();
+/* Move the cursor to (0, 0) */
 void home();
 
+/* Power on/off the display. */
 void display(uint8_t);
+/* Show/hide the cursor. */
 void cursor(uint8_t);
+/* Blink on/off. */
 void blink(uint8_t);
 
+/* Move the position of the cursor. */
 void moveCursor(uint8_t, uint8_t);
+/* Scroll the display to the left. */
 void scrollDisplay();
 
+/* Configure a new char (max 7). */
 void customChar(uint8_t, char *);
 
 
