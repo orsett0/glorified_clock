@@ -2,79 +2,72 @@
 
 // This assumes the registers are properly configured from the user,
 // and that's a bad assumption.
-void displayinit(uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
-                                 uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7,
-                                 uint8_t rw, uint8_t rs, uint8_t en)
+void displayinit(uint8_t fourbits)
 {
     uint8_t display_func = LCD_2LINE;
 
-    __dbus[0] = d0;
-    __dbus[1] = d1;
-    __dbus[2] = d2;
-    __dbus[3] = d3;
-    __dbus[4] = d4;
-    __dbus[5] = d5;
-    __dbus[6] = d6;
-    __dbus[7] = d7;
+    LCD_TRISRS = 0;
+    LCD_TRISRW = 0;
+    LCD_TRISEN = 0;
+    LCD_TRISD4 = 0;
+    LCD_TRISD5 = 0;
+    LCD_TRISD6 = 0;
+    LCD_TRISD7 = 0;
 
-    __rs = rs;
-    __rw = rw;
-    __en = en;
-
-    __4bit = (d4 & d5 & d6 & d7) == 0xFF;
-    display_func = __4bit << 4;
+    //__4bit = fourbits;
+    __4bit = 1;
+    display_func |= __4bit ? 0x00 : LCD_8BITMODE;
 
     __row_offsets[0] = 0x00;
     __row_offsets[1] = 0x40;
     __row_offsets[2] = 0x10;
     __row_offsets[3] = 0x50;
 
+    // Need to wait for the display to reach the right voltage.
     __delay_ms(50);
 
-    __rs = 0;
-    __rw = 0;
-    __en = 0;
+    LCD_RS = 0;
+    LCD_RW = 0;
+    LCD_EN = 0;
 
-    // Apparently you need __send the first __command 3 times.
-    if (__4bit)
-    {
-        ____write4bits(0x03);
-        __delay_us(4500);
-        ____write4bits(0x03);
-        __delay_us(4500);
-        ____write4bits(0x03);
-        __delay_us(150);
+    // Apparently you need send the first command 3 times.
+    if (__4bit) {
+        __command(0x03);
+        __delay_ms(5);
+        __command(0x03);
+        __delay_ms(5);
+        __command(0x03);
+        __delay_ms(5);
+    } else {
+        __command(LCD_FUNCTIONSET | display_func);
+        __delay_ms(5);
+        __command(LCD_FUNCTIONSET | display_func);
+        __delay_ms(5);
+    }
 
-        ____write4bits(0x02);
-    }
-    else
-    {
-        __command(display_func);
-        __delay_us(4500);
-        __command(display_func);
-        __delay_us(150);
-        __command(display_func);
-    }
+    home();
+    __delay_ms(5);
 
     __command(LCD_FUNCTIONSET | display_func);
+    __delay_ms(50);
+
+    //__display_ctrl |= LCD_CURSORON;
 
     display(1);
+    __delay_ms(50);
+    
     clear();
+    __delay_ms(50);
 
     __command(LCD_ENTRYMODESET | LCD_ENTRYLEFT);
-}
-
-void displayinit4bit(uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
-                                         uint8_t rw, uint8_t rs, uint8_t en)
-{
-    displayinit(d0, d1, d2, d3, 0xFF, 0xFF, 0xFF, 0xFF, rw, rs, en);
+    __delay_ms(50);
 }
 
 void print(char *buff) {
     if (buff == NULL) return;
 
-    int i = 0;
-    while (buff[i] != '\0') __write(buff[i]);
+    for (int i = 0; buff[i] != '\0'; i++) 
+        __write(buff[i]);
 }
 
 void clear() {
@@ -128,37 +121,40 @@ inline void __command(uint8_t val) {
 }
 
 void __send(uint8_t val, uint8_t mode) {
-    __rs = mode;
-    __rw = 0;
+    LCD_RS = mode;
+    LCD_RW = 0;
 
-    if (__4bit) ____write4bits(val);
-    else ____write8bits(val);
+    if (__4bit) {
+        __write4bits(val >> 4);
+        __write4bits(val);
+    }
+    else __write8bits(val);
 }
 
-void ____write4bits(uint8_t val) {
-    int i;
+void __write4bits(uint8_t val) {
+    for (int i = 4; i < 8; i++)
+        __dbus[i] = (val >> (i - 4)) & 0x01;
 
-    for (i = 0; i < 4; i++)
-        __dbus[i] = (val >> i) & 0x01;
-    __pulseEnable();
-
-    for (; i < 8; i++)
-        __dbus[i] = (val >> i) & 0x01;
+    LCD_D4 = (val >> 0) & 0x01;
+    LCD_D5 = (val >> 1) & 0x01;
+    LCD_D6 = (val >> 2) & 0x01;
+    LCD_D7 = (val >> 3) & 0x01;
+    
     __pulseEnable();
 }
 
-void ____write8bits(uint8_t val) {
-    for (int i = 0; i < 8; i++)
-        __dbus[i] = (val >> i) & 0x01;
+void __write8bits(uint8_t val) {
+    // for (int i = 0; i < 8; i++)
+    //     __dbus[i] = (val >> i) & 0x01;
 
-    __pulseEnable();
+    // __pulseEnable();
 }
 
 inline void __pulseEnable() {
-    __en = 0;
+    LCD_EN = 0;
     __delay_us(1);
-    __en = 1;
+    LCD_EN = 1;
     __delay_us(1);
-    __en = 0;
+    LCD_EN = 0;
     __delay_us(100);
 }
