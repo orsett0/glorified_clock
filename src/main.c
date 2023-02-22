@@ -6,6 +6,26 @@
 #pragma config CONFIG1 = 0x3CF4
 #pragma config CONFIG2 = 0x0600
 
+uint8_t printCool(char *buff) {
+    uint8_t i;
+    blink(0);
+
+    for (i = 0; buff[i] != '\0'; i++) {
+        printc(buff[i]);
+        if (i > 15) {
+            scrollDisplay();
+            __delay_ms(100);
+        }
+
+        __delay_ms(80); 
+    }
+
+    blink(1);
+    __delay_ms(750);
+
+    return i > 16 ? i - 16 : 0;
+}
+
 int main() {
     TRISB0 = 0;
     RB0 = 1;
@@ -16,14 +36,16 @@ int main() {
     blink(1);
     __delay_ms(2000);
 
-    blink(0);
-    char buff[] = "Hello world!";
-    for (int i = 0; i < sizeof(buff) - 1; i++) {
-        printc(buff[i]);
-       __delay_ms(80); 
+    printCool("Hello, World!");
+
+    moveCursor(1, 0);
+
+    uint8_t n = printCool("orsetto - https://github.com/orsett0");
+    if (n > 0) {
+        home();
+        moveCursor(1, n + 16);
     }
 
-    blink(1);
     __delay_ms(2000);
 
     blink(0);

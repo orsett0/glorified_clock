@@ -105,6 +105,7 @@ void blink(uint8_t value) {
     __command(LCD_DISPLAYCTRL | __display_ctrl);
 }
 
+// It depends on the contrast, but it might take a while before the text becomes readable again.
 void scrollDisplay() {
     __command(LCD_LCDSHIFT | LCD_DISPLAYMOVE);
 }
