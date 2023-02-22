@@ -1,11 +1,5 @@
 #include "display.h"
 
-inline void __write(uint8_t);
-inline void __command(uint8_t);
-void __send(uint8_t, uint8_t);
-void __write4bits(uint8_t);
-void __write8bits(uint8_t);
-
 // This assumes the registers are properly configured from the user,
 // and that's a bad assumption.
 void displayinit(uint8_t fourbits)

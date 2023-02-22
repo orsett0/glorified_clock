@@ -62,14 +62,13 @@ void customChar(uint8_t, char *);
 
 /* Low-level functions */
 
-//The user doesn't need to see those, and they might conflict with the ones in the ds1302 driver
-// inline void __write(uint8_t);
-// inline void __command(uint8_t);
+inline void __write(uint8_t);
+inline void __command(uint8_t);
 
-// void __send(uint8_t, uint8_t);
+void __send(uint8_t, uint8_t);
 
-// void __write4bits(uint8_t);
-// void __write8bits(uint8_t);
+void __write4bits(uint8_t);
+void __write8bits(uint8_t);
 
 inline void __pulseEnable();
 
