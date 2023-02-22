@@ -64,14 +64,14 @@ void displayinit(uint8_t fourbits)
 }
 
 void printc(char c) {
-    __write(c);
+    __data(c);
 }
 
 void print(char *buff) {
     if (buff == NULL) return;
 
     for (int i = 0; buff[i] != '\0'; i++) 
-        __write(buff[i]);
+        __data(buff[i]);
 }
 
 void clear() {
@@ -115,7 +115,7 @@ void customChar(uint8_t location, char charmap[]) {
     location &= 0x7;
     __command(LCD_SETCGRAMADDR | (location << 3));
     for (int i = 0; i < 8; i++)
-        __write(charmap[i]);
+        __data(charmap[i]);
 }
 
 // The other examples account for 4 row.
@@ -128,15 +128,15 @@ void moveCursor(uint8_t row, uint8_t col) {
     __command(LCD_SETDDRAMADDR | (0x40 * row) + col);
 }
 
-inline void __write(uint8_t val) {
-    __send(val, 1);
+inline void __data(uint8_t val) {
+    __instr(val, 1);
 }
 
 inline void __command(uint8_t val) {
-    __send(val, 0);
+    __instr(val, 0);
 }
 
-void __send(uint8_t val, uint8_t mode) {
+void __instr(uint8_t val, uint8_t mode) {
     LCD_RS = mode;
     LCD_RW = 0;
 

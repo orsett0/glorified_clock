@@ -62,10 +62,10 @@ void customChar(uint8_t, char *);
 
 /* Low-level functions */
 
-inline void __write(uint8_t);
+inline void __data(uint8_t);
 inline void __command(uint8_t);
 
-void __send(uint8_t, uint8_t);
+void __instr(uint8_t, uint8_t);
 
 void __write4bits(uint8_t);
 void __write8bits(uint8_t);
