@@ -4,6 +4,11 @@
 #include <xc.h>
 #include <proc/pic16f887.h>
 
+/*
+ * ================================
+ *   START LCD DRIVER DEFINITIONS
+*/
+
 #define LCD_RS  RC0
 #define LCD_RW  RC1
 #define LCD_EN  RC2
@@ -19,5 +24,21 @@
 #define LCD_TRISD5  TRISC5
 #define LCD_TRISD6  TRISC6
 #define LCD_TRISD7  TRISC7
+
+
+
+/*
+ * ================================
+ * START DS1302 DRIVER DEFINITIONS
+*/
+
+#define DS_CE   RD3
+#define DS_IO   RD2
+#define DS_SCLK RD1
+
+#define DS_TRISCE   TRISD3
+#define DS_TRISIO   TRISD2
+#define DS_TRISSCLK TRISD1
+
 
 #endif
