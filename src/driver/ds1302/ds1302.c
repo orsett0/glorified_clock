@@ -12,27 +12,80 @@ void dsinit() {
     __send(0x00, 0x80, 0);
 }
 
-void sendDateTime(uint8_t *datetime) {
-    __send(0x7F & __toBCD(datetime[0]), 0x80, 0);   // Seconds, force clock halt bit to 0
-    __send(__toBCD(datetime[1]), 0x82, 0);          // Minutes
-    __send(0x7F & __toBCD(datetime[2]), 0x84, 0);   // Hour
-    __send(__toBCD(datetime[3]), 0x86, 0);          // Date
-    __send(__toBCD(datetime[4]), 0x88, 0);          // Month
-    __send(__toBCD(datetime[5]), 0x8A, 0);          // Day of week
-    __send(__toBCD(datetime[6]), 0x8C, 0);          // Year
+/*
+ * Consider time to be seconds since epoch,
+ * and sends the corresponding date to the DS1302
+*/
+void sendDateTime(long time) {
+    uint8_t datetime[7];
+
+    __secondsToDate(time, datetime);
+
+    for (uint8_t i = 0; i < 6; i++)
+        // bitwise and to be sure that CH and WP are not set accidentally.
+        __send(0x7F & __toBCD(datetime[i]), 0x80 + (2 * i), 0);
+
+    // Can't &0x7F for the year, it needs the whole byte
+    __send(__toBCD(datetime[6]), 0x8C, 0); 
 }
 
-void recvDateTime(uint8_t *datetime) {
+/*
+ * Receive a date and time from the DS1302
+ * and return the corresponding seconds since epoch.
+*/
+long recvDateTime() {
+    uint8_t datetime[7];
+
     for (uint8_t i = 0; i < 7; i++) 
-        datetime[i] = __recv(0x81 + (2 * i), 0);
+        datetime[i] = __toBin(__recv(0x81 + (2 * i), 0));
+
+    return __dateToSeconds(datetime);
 }
 
-inline uint8_t __toBCD(uint8_t value) {
+/*
+ * Converts a two-digits decimal value to the corresponding BCD
+*/
+uint8_t __toBCD(uint8_t value) {
     return ((value / 10) << 4) | (value % 10);
 }
 
-inline uint8_t __toBin(uint8_t value) {
+/*
+ * Converts BCD to a two digits decimal value
+*/
+uint8_t __toBin(uint8_t value) {
     return (value & 0x0F) + ((value >> 4) * 10);
+}
+
+/*
+ * Get seconds since epoch and put the date and time in *datetime
+*/
+void __secondsToDate(long time, uint8_t *datetime) {
+    struct tm *curtime = localtime(&time);
+
+    datetime[0] = curtime->tm_sec;
+    datetime[1] = curtime->tm_min;
+    datetime[2] = curtime->tm_hour;
+    datetime[3] = curtime->tm_mday;
+    datetime[4] = curtime->tm_mon + 1;      // tm range 0-11
+    datetime[5] = curtime->tm_wday;
+    datetime[6] = curtime->tm_year - 100;   // tm gives the year since 1900, but I only care about the last two digits.
+}
+
+/*
+ * Get date and time in *datetime and return a long rappresenting the sencond since epoch
+*/
+long __dateToSeconds(uint8_t *datetime) {
+    struct tm curtime;
+
+    curtime.tm_sec = datetime[0];
+    curtime.tm_min = datetime[1];
+    curtime.tm_hour = datetime[2];
+    curtime.tm_mday = datetime[3];
+    curtime.tm_mon = datetime[4] - 1;
+    curtime.tm_wday = datetime[5];
+    curtime.tm_year = datetime[6] + 100;
+
+    return mktime(&curtime);
 }
 
 /*
