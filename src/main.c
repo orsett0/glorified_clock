@@ -4,11 +4,12 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "display/display.h"
 #include "ds1302/ds1302.h"
 
-#define DAYOFWEEK 5
+#define N_DATES 1
 
 // This is redefined at compile time, but if i don't do this vscode screams.
 #ifndef SEC_SINCE_EPOCH
@@ -18,63 +19,107 @@
 #pragma config CONFIG1 = 0x3CF4
 #pragma config CONFIG2 = 0x0600
 
-inline void flash(uint8_t state) {
-    RD4 = !state;
-    __delay_ms(200);
-    RD4 = state;
-}
+void printDiff(time_t);
+void printCurtime(time_t curtime);
+inline void flash(uint8_t);
 
-void echo(uint8_t datetime[7]) {
-    char buff[34];
+time_t dates[N_DATES] = {0};
+char *descs[N_DATES] = {0};
+uint8_t index = 0;
 
-    // C is disgusting. (in a nice way)
-    sprintf(buff, "%d - %02d/%02d/%02d\0", datetime[5], datetime[3], datetime[4], datetime[6]);
-    sprintf(buff + 17, "%02d:%02d:%02d", datetime[2], datetime[1], datetime[0]);
-
-    print(buff);
-    moveCursor(1, 0);
-    print(buff + 17);
-}
+short overflow;
+uint8_t iter;
 
 int main() {
+    char buff[LCD_WIDTH + 1];
+    uint8_t len;
+
     TRISD4 = 0;
     RD4 = 1;
 
-    char buff[16 + 1];
-    uint8_t datetime[7];
-
-    displayinit(1);
-
-    sendDateTime(SEC_SINCE_EPOCH);
-
-    sprintf(buff, "%ld\0", SEC_SINCE_EPOCH);
-    print(buff);
-    __delay_ms(2000);
-    clear();
-
-    flash(1);
-    __secondsToDate(SEC_SINCE_EPOCH, datetime);
-    echo(datetime);
-    __delay_ms(2000);
-    clear();
-
-    flash(1);
-    sprintf(buff, "%ld\0", __dateToSeconds(datetime));
-    print(buff);
-    __delay_ms(2000);
-    clear();
-
-    flash(1);
-    sprintf(buff, "%ld\0", recvDateTime());
-    print(buff);
-    __delay_ms(2000);
-    clear();
+    /*
+     * Qui dovresti popolare le date.
+     * Si tratta di parsare una stringa YYMMDD, popolare una struct tm, e usare localtime().
+     * Non credo convenga popolare le strutture direttamente nel codice.
+     * Potrei anche calcolare secondsSinceEpoch "a mano" per ogni data e inserire solo quello.
+     * (ad esempio usa 'date -d"YYYY-MM-DD hh:mm:ss UTC+1" "+%s"')
+     */
 
     RD4 = 0;
     while (1) {
         flash(0);
-        __delay_ms(1000);
+        __delay_ms(300); // Find the right value.
+
+        time_t curtime = recvDateTime();
+
+        if (index < 0) {
+            printCurtime(curtime);
+            continue;
+        }
+
+        if (overflow <= 0) {
+            printDiff(difftime(curtime, dates[index]));
+            continue;
+        }
+
+        len = strlen(descs[index] + iter);
+        strncpy(buff, descs[index] + iter, LCD_WIDTH);
+
+        // Pad the end with the start of descs[index]
+        if (len < LCD_WIDTH - 3) {
+            buff[len] = ' ';
+            buff[len + 1] = ' ';
+            buff[len + 2] = ' ';
+
+            strncpy(buff + len + 3, descs[index], LCD_WIDTH - len - 3);
+        }
+
+        buff[LCD_WIDTH] = '\0';
+        moveCursor(0, 0);
+        print(buff);
+        printDiff(difftime(curtime, dates[index]));
+
+        if (iter == overflow + 16) iter = 0;
     }
     
     return 0;
+}
+
+void handler() { // TODO implement the interrupt
+    if (++index == N_DATES) index = -1;
+    overflow = strlen(descs[index]) - 16;
+    iter = 0;
+
+    clear();
+    print(descs[index]);
+}
+
+inline void flash(uint8_t low) {
+    RD4 = low;
+    __delay_ms(200);
+    RD4 = !low;
+}
+
+void printDiff(time_t diff) {
+    struct tm *datetime = localtime(&diff);
+    char buff[41];
+
+    moveCursor(1, 0);
+    sprintf(buff, "%02dy %02dm %02dd\0"); // You should make it pretty.
+    print(buff);
+}
+
+void printCurtime(time_t curtime) {
+    struct tm *datetime = localtime(&curtime);
+    char buff[17];
+
+    clear();
+
+    sprintf(buff, "   %02d/%02d/20%02d   \0", datetime->tm_mday, datetime->tm_mon, datetime->tm_year);
+    print(buff);
+
+    moveCursor(1, 0);
+
+    sprintf(buff, "    %02d:%02d:%02d    \0", datetime->tm_hour, datetime->tm_min, datetime->tm_sec);
+    print(buff);
 }

@@ -27,6 +27,9 @@
 
 #define LCD_DISPLAYMOVE     0x08
 
+#define LCD_WIDTH       16
+#define LCD_MAX_CHAR        40
+
 uint8_t __dbus[8], __row_offsets[4];
 uint8_t __4bit;
 uint8_t __display_ctrl = LCD_DISPLAYCTRL;
