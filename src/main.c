@@ -42,8 +42,10 @@ int main() {
 
     char buff[16 + 1];
     uint8_t datetime[7];
+    time_t rec;
 
     displayinit(1);
+    dsinit();
 
     sendDateTime(SEC_SINCE_EPOCH);
 
@@ -65,8 +67,15 @@ int main() {
     clear();
 
     flash(1);
+    rec = recvDateTime();
     sprintf(buff, "%ld\0", recvDateTime());
     print(buff);
+    __delay_ms(2000);
+    clear();
+
+    flash(1);
+    __secondsToDate(rec, datetime);
+    echo(datetime);
     __delay_ms(2000);
     clear();
 

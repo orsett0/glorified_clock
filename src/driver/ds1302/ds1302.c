@@ -16,7 +16,7 @@ void dsinit() {
  * Consider time to be seconds since epoch,
  * and sends the corresponding date to the DS1302
 */
-void sendDateTime(long time) {
+void sendDateTime(time_t time) {
     uint8_t datetime[7];
 
     __secondsToDate(time, datetime);
@@ -33,7 +33,7 @@ void sendDateTime(long time) {
  * Receive a date and time from the DS1302
  * and return the corresponding seconds since epoch.
 */
-long recvDateTime() {
+time_t recvDateTime() {
     uint8_t datetime[7];
 
     for (uint8_t i = 0; i < 7; i++) 
@@ -59,7 +59,7 @@ uint8_t __toBin(uint8_t value) {
 /*
  * Get seconds since epoch and put the date and time in *datetime
 */
-void __secondsToDate(long time, uint8_t *datetime) {
+void __secondsToDate(time_t time, uint8_t *datetime) {
     struct tm *curtime = localtime(&time);
 
     datetime[0] = curtime->tm_sec;
@@ -72,9 +72,9 @@ void __secondsToDate(long time, uint8_t *datetime) {
 }
 
 /*
- * Get date and time in *datetime and return a long rappresenting the sencond since epoch
+ * Get date and time in *datetime and return a time_t rappresenting the sencond since epoch
 */
-long __dateToSeconds(uint8_t *datetime) {
+time_t __dateToSeconds(uint8_t *datetime) {
     struct tm curtime;
 
     curtime.tm_sec = datetime[0];
