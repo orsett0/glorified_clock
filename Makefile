@@ -4,13 +4,14 @@ include ${CONFIG}
 MKDIR := mkdir -p 
 RM := rm -rf 
 
-BUILDDIR := build/
+BUILDDIR := build
 OUTFILE := $(BUILDDIR)/orologio_lidia
 CND_CONF := default
 
 MP_PROCESSOR_OPTION := 16F887
 
-OBJECTFILES := $(patsubst %.c, $(BUILDDIR)/%.p1, $(wildcard src/*.c) $(wildcard src/driver/*/*.c))
+SRC := $(wildcard src/*.c) $(wildcard src/driver/*/*.c)
+OBJ := $(patsubst %.c, $(BUILDDIR)/%.p1, $(wildcard src/*.c) $(wildcard src/driver/*/*.c))
 
 options := -Wa,-a -mno-keep-startup -Wl -gdwarf-3 -mno-resetbits -mno-save-resetbits -O0 -fno-short-double -mno-stackcall -xassembler-with-cpp -DXPRJ_default=$(CND_CONF) -D__DEBUG=1 -mcpu=$(MP_PROCESSOR_OPTION) -mdfp="${DFP_DIR}/xc8" -msummary=-psect,-class,+mem,-hex,-file -Wl,--data-init -mno-osccal -mstack=compiled:auto:auto -fno-short-float -mdebugger=none -maddrqual=ignore -mno-download -mwarn=-3 -mdefault-config-bits -fasmfile -std=c99 -ginhx32 
 
@@ -25,13 +26,14 @@ clean-test: clean test
 clean:
 	${RM} $(BUILDDIR)
 
-$(OUTFILE)-main: ${filter-out $(BUILDDIR)/src/test.p1, $(OBJECTFILES)}
+$(OUTFILE)-main: ${filter-out $(BUILDDIR)/src/test.p1, $(OBJ)}
 	${MP_CC} $(options) -Wl,--defsym=__MPLAB_BUILD=1 -o $@ $^
 
-$(OUTFILE)-test: ${filter-out $(BUILDDIR)/src/main.p1, $(OBJECTFILES)}
+$(OUTFILE)-test: ${filter-out $(BUILDDIR)/src/main.p1, $(OBJ)}
 	@echo linking in $@
 	${MP_CC} $(options) -Wl,--defsym=__MPLAB_BUILD=1 -o $@ $^
 
-$(OBJECTFILES):
+$(BUILDDIR)/%.p1: %.c
+	@echo Compiling $@ - $^
 	@${MKDIR} ${shell dirname $@}
-	${MP_CC} $(options) -c -o $@ $(patsubst $(BUILDDIR)/%.p1, %.c, $@)
+	${MP_CC} $(options) -c -o $@ $^
