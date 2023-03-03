@@ -7,18 +7,21 @@
 #include <time.h>
 
 #include "defines.h"
+#include "display/display.h"
 
-void dsinit();
+uint8_t datetime[7];
+
+void dsinit(void);
 
 void sendDateTime(time_t);
 time_t recvDateTime();
 
 inline void __write(uint8_t);
 
-inline void __cmd(uint8_t, uint8_t, uint8_t);
+inline void __cmd(uint8_t);
 
-uint8_t __recv(uint8_t, uint8_t);
-void __send(uint8_t, uint8_t, uint8_t);
+uint8_t __recv(uint8_t);
+void __send(uint8_t, uint8_t);
 
 uint8_t __toBCD(uint8_t);
 uint8_t __toBin(uint8_t);
