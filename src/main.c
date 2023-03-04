@@ -29,17 +29,28 @@
 // these are redefined at compile time,
 // but if i don't do this vscode screams.
 #ifndef SEC_SINCE_EPOCH
-    #define SEC_SINCE_EPOCH 0
+#define SEC_SINCE_EPOCH 0
 #endif
-#define N_DATES 3
-#define SPACE_PADDING 3
+#ifndef _XTAL_FREQ
+#define _XTAL_FREQ      1
+#endif
+
+#define N_DATES         3
+#define SPACE_PADDING   3
+
+#define DEBOUNCE_TIME   20
+#define LCD_LED_TMR     10
+#define MAX_COUNTER     ((uint8_t) (((unsigned long) _XTAL_FREQ) \
+                            / (((unsigned long) 4) * ((unsigned long) 256) * ((unsigned long) 256))) \
+                            * LCD_LED_TMR)
 
 
 void printDiff(time_t);
 void printCurtime(time_t curtime);
-inline void flash();
+inline void flash(void);
 void createCircularString(char *, uint8_t, short);
 void adjustForLocaltime(time_t *);
+inline void turnOnLCD(void);
 
 
 // Use 'date -d"YYYY-MM-DD hh:mm:ss" "+%s"' to populate the dates array.
@@ -63,31 +74,54 @@ int8_t overflow;
 int8_t iter;
 
 uint8_t int_exec_flag = 0;
+volatile uint8_t counter = 0;
 
 /*
  * The interrupts are described at page 216, section 14.6 of the PIC16F887 datasheets
  * And at page 131, section 4.9 of the XC8 guide.
 */
-#ifdef __XC8 // vscode does not support xc8
-void __interrupt() handler(void) {
+#ifdef __XC8 // vscode does not support xc8-cc
+void __interrupt() handler(void)
 #else
-void handler() {
+void handler()
 #endif
-    if (!INTF) return;
+{
+    if (INTF) {
+        INTF = 0;
 
-    flash();
+        // Wait for debouncing and check if the button is pressed
+        // 20ms is probably more than it's needed
+        // This is necessary because a falling edge caused by a
+        // bounce might trigger the interrupt
+        __delay_ms(DEBOUNCE_TIME);
+        if (RB0) return;
 
-    if (++index == N_DATES) index = -1;
-    else {
-        overflow = strlen(descs[index]) - LCD_WIDTH;
-        iter = 0;
+        if (++index == N_DATES) index = -1;
+        int_exec_flag = 1;
+
+        turnOnLCD();
+        
+        
+    } else if (T0IF && !RBIF) {
+        T0IF = 0;
+
+        if (++counter < MAX_COUNTER) return;
+        counter = 0;
+
+        RA6 = 0;
+        // Disable timer and interrupt
+        T0CS = 1;
+        T0IE = 0;
+    } else if (RBIF) {
+        RBIF = 0;
+        
+        // Wait for bouncing and check if the button is pressed
+        // 20ms is probably more than it's needed
+        __delay_ms(DEBOUNCE_TIME);
+        if (RB1) return;
+
+        turnOnLCD();
     }
-
-    int_exec_flag = 1;
-
-    // Clear the interrupt
-    INTF = 0;
-    //RBIF = 0;
 }
 
 
@@ -98,34 +132,64 @@ int main() {
     /* SETUP PORTS AND INTERRUPTS */
 
     // Globally disable interrupts at boot
-    di();
+    //di();
+
+    // PORTA
+    ANSEL = 0;
+    TRISA6 = 0;
+    RA6 = 0;
 
     // Set outputs
     TRISD4 = 0;
     RD4 = 0;
 
     // enable interrupt on falling edge
+    TRISB0 = 0;
     ANSELH = 0;
     INTEDG = 0;
     INTE = 1;
 
+    // Enable interrupt on change on RB1
+    ANSELH = 0;
+    TRISB1 = 1;
+    RBIE = 1;
+    IOCB1 = 1;
+
+    // Setup prescaler
+    PSA = 0;
+    PS2 = 1;
+    PS1 = 1;
+    PS0 = 1;
+
+    // Read RB1 to latch the current value.
+    // Don't know if it's really necessary.
+    RB1;
+
+    SSPEN = 0;
 
     /* INIT DISPLAY AND DS1302 */
 
     dsinit();
     displayinit(1);
 
-    //sendDateTime(SEC_SINCE_EPOCH);
+    sendDateTime(SEC_SINCE_EPOCH);
 
-    // Clearing th flag because the interrupts flag are set even if
-    // they are globally disabled. (Note 1. page 216 of the datasheet)
+    // Clearing flags because they are set even if interrupts are 
+    // globally disabled. (Note 1. page 216 of the datasheet)
     INTF = 0;
+    RBIF = 0;
     // Globally enable interrupts
     ei();
 
 
+    // Flash to signal end of setup
+    flash();
+
+    sprintf(buff, "%d\0", MAX_COUNTER);
+    print(buff);
+
     while (1) {
-        curtime = SEC_SINCE_EPOCH; //recvDateTime();
+        curtime = recvDateTime();
         adjustForLocaltime(&curtime);
 
         // The interrupt fired. Adjust to the new state and go on.
@@ -137,15 +201,19 @@ int main() {
                 continue;
             }
 
-            // No need to check if overflow this time
+            // Set overflow
+            overflow = strlen(descs[index]) - LCD_WIDTH;
+            iter = 0;
+
             clear();
             print(descs[index]);
             printDiff(difftime(curtime, dates[index]));
+            __delay_ms(500);
 
             continue;
         }
 
-        __delay_ms(500); // Find the right value.
+        //__delay_ms(500); // Find the right value.
 
         if (index < 0)
             printCurtime(curtime);
@@ -161,6 +229,7 @@ int main() {
             print(buff);
             
             printDiff(difftime(curtime, dates[index]));
+            __delay_ms(500);
         }
     }
     
@@ -220,7 +289,7 @@ void createCircularString(char *src, uint8_t src_len, short src_offset) {
 
 inline void flash() {
     RD4 = 1;
-    __delay_ms(100);
+    __delay_ms(500);
     RD4 = 0;
 }
 
@@ -238,7 +307,7 @@ void printCurtime(time_t curtime) {
     struct tm *datetime = localtime(&curtime);
 
     moveCursor(0, 0);
-    sprintf(buff, "   %02d/%02d/20%02d   \0", datetime->tm_mday, datetime->tm_mon, datetime->tm_year - 100);
+    sprintf(buff, "   %02d/%02d/20%02d   \0", datetime->tm_mday, datetime->tm_mon + 1, datetime->tm_year - 100);
     print(buff);
 
     moveCursor(1, 0);
@@ -260,4 +329,15 @@ void adjustForLocaltime(time_t *t) {
 
     // Daylight summer time, add 3600 seconds for CEST.
     if (dst) (*t) += 3600;
+}
+
+inline void turnOnLCD() {
+    RA6 = 1;
+    counter = 0;
+
+    // Enable timer
+    T0IF = 0;
+    TMR0 = 0x00;
+    T0CS = 0;
+    T0IE = 1;
 }

@@ -4,6 +4,10 @@
 #include <xc.h>
 #include <proc/pic16f887.h>
 
+#ifndef __XC8
+typedef uint8_t __bit;
+#endif
+
 /*
  * ================================
  *   START LCD DRIVER DEFINITIONS
