@@ -33,7 +33,7 @@ void sendDateTime(time_t time) {
  * Receive a date and time from the DS1302
  * and return the corresponding seconds since epoch.
 */
-time_t recvDateTime() {
+time_t recvDateTime(void) {
     uint8_t datetime[7];
 
     for (uint8_t i = 0; i < 7; i++) 
@@ -47,7 +47,7 @@ time_t recvDateTime() {
  * Converts a two-digits decimal value to the corresponding BCD
 */
 uint8_t __toBCD(uint8_t value) {
-    return ((value / 10) << 4) | (value % 10);
+    return (uint8_t) (((value / 10) << 4) | (value % 10));
 }
 
 /*
@@ -63,13 +63,13 @@ uint8_t __toBin(uint8_t value) {
 void __secondsToDate(time_t time, uint8_t *datetime) {
     struct tm *curtime = localtime(&time);
 
-    datetime[0] = curtime->tm_sec;
-    datetime[1] = curtime->tm_min;
-    datetime[2] = curtime->tm_hour;
-    datetime[3] = curtime->tm_mday;
-    datetime[4] = curtime->tm_mon + 1;      // tm range 0-11
-    datetime[5] = curtime->tm_wday;
-    datetime[6] = curtime->tm_year - 100;   // tm gives the year since 1900, but I only care about the last two digits.
+    datetime[0] = (uint8_t) curtime->tm_sec;
+    datetime[1] = (uint8_t) curtime->tm_min;
+    datetime[2] = (uint8_t) curtime->tm_hour;
+    datetime[3] = (uint8_t) curtime->tm_mday;
+    datetime[4] = (uint8_t) curtime->tm_mon + 1;      // tm range 0-11
+    datetime[5] = (uint8_t) curtime->tm_wday;
+    datetime[6] = (uint8_t) curtime->tm_year - 100;   // tm gives the year since 1900, but I only care about the last two digits.
 }
 
 /*

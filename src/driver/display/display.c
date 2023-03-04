@@ -74,12 +74,12 @@ void print(char *buff) {
         __data(buff[i]);
 }
 
-void clear() {
+void clear(void) {
     __command(LCD_CLEAR);
     __delay_ms(2);
 }
 
-void home() {
+void home(void) {
     __command(LCD_HOME);
     __delay_ms(2);
 }
@@ -113,7 +113,7 @@ void scrollDisplay() {
 // This was on the arduino driver, but i might as well delete it.
 void customChar(uint8_t location, char charmap[]) {
     location &= 0x7;
-    __command(LCD_SETCGRAMADDR | (location << 3));
+    __command((uint8_t) (LCD_SETCGRAMADDR | (location << 3)));
     for (int i = 0; i < 8; i++)
         __data(charmap[i]);
 }
@@ -137,7 +137,7 @@ inline void __command(uint8_t val) {
 }
 
 void __instr(uint8_t val, uint8_t mode) {
-    LCD_RS = mode;
+    LCD_RS = (__bit) mode;
     LCD_RW = 0;
 
     if (__4bit) {

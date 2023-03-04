@@ -14,7 +14,7 @@ uint8_t datetime[7];
 void dsinit(void);
 
 void sendDateTime(time_t);
-time_t recvDateTime();
+time_t recvDateTime(void);
 
 inline void __write(uint8_t);
 

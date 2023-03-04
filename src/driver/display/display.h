@@ -43,9 +43,9 @@ void print(char *buff);
 void printc(char c);
 
 /* Clear the display and set the cursor to (0, 0) */
-void clear();
+void clear(void);
 /* Move the cursor to (0, 0) */
-void home();
+void home(void);
 
 /* Power on/off the display. */
 void display(uint8_t);

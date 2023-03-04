@@ -48,7 +48,8 @@
 void printDiff(time_t);
 void printCurtime(time_t curtime);
 inline void flash(void);
-void createCircularString(char *, uint8_t, short);
+// using 16-bit integer for the string length to allow strings longer than 256
+void createCircularString(char *, uint16_t, short);
 void adjustForLocaltime(time_t *);
 inline void turnOnLCD(void);
 
@@ -69,8 +70,9 @@ char *descs[N_DATES] = {
 int8_t index = -1;
 uint8_t dst = 0;
 
+// 16 bit integer instead of 8 to allow strings bigger than (65535 - 17) chars.
+int16_t overflow;
 char buff[LCD_WIDTH + 1];
-int8_t overflow;
 int8_t iter;
 
 uint8_t int_exec_flag = 0;
@@ -202,12 +204,12 @@ int main() {
             }
 
             // Set overflow
-            overflow = strlen(descs[index]) - LCD_WIDTH;
+            overflow = (int16_t) (strlen(descs[index]) - LCD_WIDTH);
             iter = 0;
 
             clear();
             print(descs[index]);
-            printDiff(difftime(curtime, dates[index]));
+            printDiff((time_t) difftime(curtime, dates[index]));
             __delay_ms(500);
 
             continue;
@@ -218,17 +220,17 @@ int main() {
         if (index < 0)
             printCurtime(curtime);
         else if (overflow <= 0)
-            printDiff(difftime(curtime, dates[index]));
+            printDiff((time_t) difftime(curtime, dates[index]));
         else {
             if (iter == overflow + LCD_WIDTH) iter = -SPACE_PADDING;
 
-            createCircularString(descs[index], strlen(descs[index]), ++iter);
+            createCircularString(descs[index], (uint16_t) strlen(descs[index]), ++iter);
             buff[LCD_WIDTH] = '\0';
 
             moveCursor(0, 0);
             print(buff);
             
-            printDiff(difftime(curtime, dates[index]));
+            printDiff((time_t) difftime(curtime, dates[index]));
             __delay_ms(500);
         }
     }
@@ -242,8 +244,8 @@ int main() {
  * And don't ever even think to have a problem with this function. You'll regret all of you life choices.
  * If you need to change something, rewrite it from scratch. You'll figure something out.
 */
-void createCircularString(char *src, uint8_t src_len, short src_offset) {
-    uint8_t to_copy;
+void createCircularString(char *src, uint16_t src_len, short src_offset) {
+    uint16_t to_copy;
 
     if (src == NULL || src_len == 0) return;
 
@@ -270,21 +272,21 @@ void createCircularString(char *src, uint8_t src_len, short src_offset) {
     buff[16] = ' ';
 
     if (src_offset < 0) {
-        strncpy(buff - src_offset, src, LCD_WIDTH + src_offset);
+        strncpy(buff - src_offset, src, (size_t) (LCD_WIDTH + src_offset));
         while (src_offset + 1 < 0) buff[src_offset++ + SPACE_PADDING] = ' ';
 
         return;
     }
 
-    to_copy = src_len - src_offset;
+    to_copy = src_len - ((unsigned short) src_offset);
 
-    strncpy(buff, src + src_offset, to_copy >= LCD_WIDTH ? LCD_WIDTH : to_copy);
+    strncpy(buff, src + src_offset, (size_t) (to_copy >= LCD_WIDTH ? LCD_WIDTH : to_copy));
 
-    while (to_copy < src_len - src_offset + 2 && to_copy < LCD_WIDTH) buff[to_copy++] = ' ';
+    while (to_copy < src_len - ((unsigned short) src_offset) + 2 && to_copy < LCD_WIDTH) buff[to_copy++] = ' ';
 
     if (++to_copy > LCD_WIDTH) return;
 
-    strncpy(buff + to_copy, src, LCD_WIDTH - to_copy);
+    strncpy(buff + to_copy, src, (size_t) (LCD_WIDTH - to_copy));
 }
 
 inline void flash() {
