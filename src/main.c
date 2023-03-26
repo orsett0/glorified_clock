@@ -25,6 +25,7 @@
 #include "display/display.h"
 #include "ds1302/ds1302.h"
 #include "defines.h"
+#include "src/dates.h"
 
 // these are redefined at compile time,
 // but if i don't do this vscode screams.
@@ -35,7 +36,6 @@
 #define _XTAL_FREQ      1
 #endif
 
-#define N_DATES         3
 #define SPACE_PADDING   3
 
 #define DEBOUNCE_TIME   20
@@ -54,18 +54,6 @@ void adjustForLocaltime(time_t *);
 inline void turnOnLCD(void);
 
 
-// Use 'date -d"YYYY-MM-DD hh:mm:ss" "+%s"' to populate the dates array.
-// add 3600 for CET and 7200 for CEST
-time_t dates[N_DATES] = {
-    1675438200,
-    1672527600,
-    1675206000,
-};
-char *descs[N_DATES] = {
-    "16.30, 3 febbraio",
-    "Capodanno",
-    "Febbraio",
-};
 // Using signed char so that getter and setter works with the conversion to (uint8_t *)
 int8_t index = -1;
 uint8_t dst = 0;
@@ -77,6 +65,12 @@ int8_t iter;
 
 uint8_t int_exec_flag = 0;
 volatile uint8_t counter = 0;
+
+#ifdef __XC8
+__eeprom uint8_t datetime_set = 0;
+#else
+uint8_t datetime_set = 0;
+#endif
 
 /*
  * The interrupts are described at page 216, section 14.6 of the PIC16F887 datasheets
@@ -169,17 +163,26 @@ int main() {
 
     SSPEN = 0;
 
+    IRCF2 = 1;
+    IRCF1 = 0;
+    IRCF0 = 0;
+
     /* INIT DISPLAY AND DS1302 */
 
     dsinit();
     displayinit(1);
 
-    sendDateTime(SEC_SINCE_EPOCH);
+    // Need to send datetime to the ds1302 only after compiling.
+    if (!datetime_set) {
+        sendDateTime(SEC_SINCE_EPOCH);
+        datetime_set = 1;
+    }
 
     // Clearing flags because they are set even if interrupts are 
     // globally disabled. (Note 1. page 216 of the datasheet)
     INTF = 0;
     RBIF = 0;
+    T0IF = 0;
     // Globally enable interrupts
     ei();
 
@@ -187,8 +190,8 @@ int main() {
     // Flash to signal end of setup
     flash();
 
-    sprintf(buff, "%d\0", MAX_COUNTER);
-    print(buff);
+    //sprintf(buff, "%d\0", MAX_COUNTER);
+    //print(buff);
 
     while (1) {
         curtime = recvDateTime();
