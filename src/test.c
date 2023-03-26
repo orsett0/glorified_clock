@@ -35,12 +35,41 @@
 
 
 char buff[17];
+struct tm *lt;
+time_t dst_start, dst_end;
 
 
-inline void flash(void) {
-    RD4 = 1;
-    __delay_ms(150);
-    RD4 = 0;
+void adjustForLocaltime(time_t *t) {
+    /*
+     * The transition from CET to CEST happens at 1am UTC of the last sunday of march,
+     * so i subtract the week day of the last day of march from that date 
+     * in order to get the last sunday. (struct tm counts the week day considering sunday as 0)
+     * The same concept is applied to the transition from CEST to CET
+     */
+
+    lt = localtime(t);
+
+    lt->tm_mday = 31;
+    lt->tm_min = 0;
+    lt->tm_sec = 0;
+
+    lt->tm_mon = 2;
+    lt->tm_hour = 1;
+    dst_start = mktime(lt);
+    // xc8's (v2.36) implementation of mktime doesn't automatically adjust tm_wday
+    // after a successful call, so I need to call localtime again.
+    dst_start -= localtime(&dst_start)->tm_wday * 86400;
+
+    lt->tm_mon = 9;
+    lt->tm_hour = 1;
+    dst_end = mktime(lt);
+    dst_end -= localtime(&dst_end)->tm_wday * 86400;
+
+    // Add seconds 3600 for CET
+    (*t) += 3600;
+
+    // Daylight summer time, add 3600 seconds for CEST.
+    if ((*t) >= dst_start && (*t) < dst_end) (*t) += 3600;
 }
 
 void printCurtime(time_t curtime) {
@@ -62,12 +91,18 @@ int main(void) {
     dsinit();
     displayinit(1);
 
+    TRISA6 = 0;
+    RA6 = 1;
+
     sendDateTime(SEC_SINCE_EPOCH);
 
     while (1) {
         t = recvDateTime();
-        printCurtime(t);
+        adjustForLocaltime(&t);
+
         home();
+        printCurtime(t);
+
         __delay_ms(500);
     }
     

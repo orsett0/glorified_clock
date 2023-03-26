@@ -25,7 +25,7 @@
 #include "display/display.h"
 #include "ds1302/ds1302.h"
 #include "defines.h"
-#include "src/dates.h"
+#include "dates.h"
 
 // these are redefined at compile time,
 // but if i don't do this vscode screams.
@@ -320,20 +320,38 @@ void printCurtime(time_t curtime) {
     print(buff);
 }
 
+/*
+ * The transition from CET to CEST happens at 1am UTC of the last sunday of march,
+ * so i subtract the week day of the last day of march from that date 
+ * in order to get the last sunday. (struct tm counts the week day considering sunday as 0)
+ * The same concept is applied to the transition from CEST to CET
+ */
 void adjustForLocaltime(time_t *t) {
     struct tm *lt;
-    
-    // Add seconds 3600 for CET
-    (*t) += 3600;
+    time_t dst_start, dst_end;
+
     lt = localtime(t);
 
-    // Last sunday of march, 2am -> set dst
-    // Last sunday of october, 2am -> clear dst
-    if (lt->tm_hour == 2 && lt->tm_wday == 0 && lt->tm_mon == 2 && lt->tm_mday - 7 > 23) dst = 1;
-    else if (lt->tm_hour == 1 && lt->tm_wday == 0 && lt->tm_mon == 9 && lt->tm_mday - 7 > 23) dst = 0;
+    lt->tm_mday = 31;
+    lt->tm_hour = 1;
+    lt->tm_min = 0;
+    lt->tm_sec = 0;
+
+    lt->tm_mon = 2;
+    dst_start = mktime(lt);
+    // xc8's (v2.36) implementation of mktime doesn't automatically adjust tm_wday
+    // after a successful call, so I need to call localtime again.
+    dst_start -= localtime(&dst_start)->tm_wday * 86400;
+
+    lt->tm_mon = 9;
+    dst_end = mktime(lt);
+    dst_end -= localtime(&dst_end)->tm_wday * 86400;
 
     // Daylight summer time, add 3600 seconds for CEST.
-    if (dst) (*t) += 3600;
+    if ((*t) >= dst_start && (*t) < dst_end) (*t) += 3600;
+
+    // Add seconds 3600 for CET
+    (*t) += 3600;
 }
 
 inline void turnOnLCD() {
