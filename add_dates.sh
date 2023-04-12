@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# Copyright (C) 2023 Alessio Orsini <alessiorsini.ao@proton.me>
+# SPDX-License-Identifier: GPL-3.0-or-later
+# 
+# A copy of the GNU General Public License is available in the 
+# LICENSE file, in the project root directory.
+
 # Provide a file dates.lst containing a date and description for each line, in the format:
 # YYYY-MM-DD DST Space-separated string containing description
 # where DST assumes the values 0 or 1
