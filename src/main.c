@@ -244,7 +244,7 @@ int main() {
             if (first_cycle_iteration && strlen(descs[index] + iter) >= LCD_WIDTH) RA6 = 1;
             else {
                 first_cycle_iteration = 0;
-                RA6 = 0;
+                if (!T0IE) RA6 = 0;
             }
 
             createCircularString(descs[index], (uint16_t) strlen(descs[index]), ++iter);
