@@ -23,7 +23,7 @@ default: upload-main
 test: upload-test
 
 upload%: $(OUTFILE)%
-	@./upload.sh $^.hex $(IPPI)
+	@./upload.sh $^.hex $(PI_LOGIN) $(PI_PORT)
 
 clean-default: clean default
 clean-test: clean test
