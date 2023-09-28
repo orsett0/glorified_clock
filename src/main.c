@@ -68,6 +68,7 @@ uint8_t dst = 0;
 int16_t overflow;
 char buff[LCD_WIDTH + 1];
 int8_t iter;
+uint8_t first_cycle_iteration = 1;
 
 uint8_t int_exec_flag = 0;
 volatile uint8_t counter = 0;
@@ -196,6 +197,8 @@ int main() {
     // Flash to signal end of setup
     flash();
 
+    turnOnLCD();
+
     //sprintf(buff, "%d\0", MAX_COUNTER);
     //print(buff);
 
@@ -215,6 +218,10 @@ int main() {
             // Set overflow
             overflow = (int16_t) (strlen(descs[index]) - LCD_WIDTH);
             iter = 0;
+            first_cycle_iteration = 1;
+            // Disabling timer and timer interrupt to avoid flashing the LCD while cycling
+            T0CS = 1;
+            T0IE = 0;
 
             clear();
             print(descs[index]);
@@ -232,6 +239,13 @@ int main() {
             printDiff((time_t) difftime(curtime, dates[index]));
         else {
             if (iter == overflow + LCD_WIDTH) iter = -SPACE_PADDING;
+
+            // Turn on LCD if cycling a string
+            if (first_cycle_iteration && strlen(descs[index] + iter) >= LCD_WIDTH) RA6 = 1;
+            else {
+                first_cycle_iteration = 0;
+                RA6 = 0;
+            }
 
             createCircularString(descs[index], (uint16_t) strlen(descs[index]), ++iter);
             buff[LCD_WIDTH] = '\0';
